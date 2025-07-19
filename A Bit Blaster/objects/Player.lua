@@ -17,8 +17,8 @@ function Player:new(area, x, y, opts)
     self.a = 100
 
     -- Cycle
-    self.tick_timer = 0
-    self.tick_cooldown = 5
+    self.cycle_timer = 0
+    self.cycle_cooldown = 5
 
     -- Boost
     self.max_boost = 100
@@ -40,8 +40,6 @@ function Player:new(area, x, y, opts)
     self.shoot_timer = 0
     self.shoot_cooldown = 0.24
     self:setAttack('Neutral')
-    
-    self.timer:every(5, function() self:tick() end)
 
     input:bind('f4', function() self:die() end)
 
@@ -360,21 +358,39 @@ function Player:new(area, x, y, opts)
     self.flat_hp = 0
     self.flat_ammo = 0
     self.flat_boost = 0
-    self.ammo_gain = 0
+    self.ammo_gain = 1
 
     -- Multipliers
     self.hp_multiplier = 1
     self.ammo_multiplier = 1
     self.boost_multiplier = 1
+    self.aspd_multiplier = 1
+
+    -- Chances
+    self.launch_homing_projectile_on_ammo_pickup_chance = 10
+    self.regain_hp_on_ammo_pickup_chance = 15
+    self.regain_hp_on_sp_pickup_chance = 65
+    self.spawn_haste_area_on_hp_pickup_chance = 50
+    self.spawn_haste_area_on_sp_pickup_chance = 70
 
     -- treeToPlayer(self)
     self:setStats()
+    self:generateChances()
 end
 
 function Player:setStats()
     -- HP
     self.max_hp = (self.max_hp + self.flat_hp)*self.hp_multiplier
     self.hp = self.max_hp
+end
+
+function Player:generateChances()
+    self.chances = {}
+    for k, v in pairs(self) do
+        if k:find('_chance') and type(v) == 'number' then
+      	    self.chances[k] = chanceList({true, math.ceil(v)}, {false, 100-math.ceil(v)})
+      	end
+    end
 end
 
 function Player:update(dt)
@@ -391,6 +407,7 @@ function Player:update(dt)
         if object:is(Ammo) then
             object:die()
             self:addAmmo(5)
+            self:onAmmoPickup()
 
         elseif object:is(Boost) then
             object:die()
@@ -398,10 +415,12 @@ function Player:update(dt)
 
         elseif object:is(HP) then
             object:die()
+            self:onHPPickup()
             self:addHP(25)
 
         elseif object:is(SkillPoint) then
             object:die()
+            self:onSPPickup()
             current_room.score = current_room.score + 250
             addSp(1)
             
@@ -420,6 +439,13 @@ function Player:update(dt)
         if object then 
             self:hit(30) 
         end
+    end
+
+    -- Cycle
+    self.cycle_timer = self.cycle_timer + dt
+    if self.cycle_timer > self.cycle_cooldown then
+        self.cycle_timer = 0
+        self:cycle()
     end
 
     -- Boost
@@ -453,7 +479,7 @@ function Player:update(dt)
 
     -- Shoot
     self.shoot_timer = self.shoot_timer + dt
-    if self.shoot_timer > self.shoot_cooldown then
+    if self.shoot_timer > self.shoot_cooldown*self.aspd_multiplier then
         self.shoot_timer = 0
         self:shoot()
     end
@@ -485,8 +511,8 @@ function Player:destroy()
     Player.super.destroy(self)
 end
 
-function Player:tick()
-    self.area:addGameObject('TickEffect', self.x, self.y, {player = self})
+function Player:cycle()
+    self.area:addGameObject('CycleEffect', self.x, self.y, {parent = self})
 end
 
 function Player:shoot()
@@ -539,6 +565,9 @@ function Player:shoot()
 
         self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(self.r - math.pi / 2), 
         self.y + 1.5*d*math.sin(self.r - math.pi / 2), {r = self.r - math.pi / 2, attack = self.attack})
+    elseif self.attack == 'Homing' then
+        self.ammo = self.ammo - attacks[self.attack].ammo
+        self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(self.r), self.y + 1.5*d*math.sin(self.r), {r = self.r, attack = self.attack})
     end
 
 
@@ -588,7 +617,7 @@ function Player:die()
 end
 
 function Player:addAmmo(amount)
-    self.ammo = math.max(math.min(self.ammo + self.ammo_gain*amount, self.max_ammo), 0)
+    self.ammo = math.max(math.min(self.ammo + amount*self.ammo_gain, self.max_ammo), 0)
     current_room.score = current_room.score + 50
 end
 
@@ -607,4 +636,48 @@ function Player:removeHP(amount)
         self.hp = 0
         self:die()
     end
+end
+
+function Player:onAmmoPickup()
+    if self.chances.launch_homing_projectile_on_ammo_pickup_chance:next() then
+        local d = 1.2*self.w
+        self.area:addGameObject('Projectile', self.x + d*math.cos(self.r), self.y + d*math.sin(self.r), {r = self.r, attack = 'Homing'})
+        self.area:addGameObject('InfoText', self.x, self.y, {text = 'Homing Projectile!', color = faded_skill_point_color})
+    end
+
+    if self.chances.regain_hp_on_ammo_pickup_chance:next() then
+        self:addHP(25)
+        self.area:addGameObject('InfoText', self.x, self.y, {text = 'HP Regain!', color = faded_hp_color})
+    end
+end
+
+function Player:onSPPickup()
+    if self.chances.regain_hp_on_sp_pickup_chance:next() then
+        self:addHP(25)
+        self.area:addGameObject('InfoText', self.x, self.y, {text = 'HP Regain!', color = faded_hp_color})
+    end
+
+    if self.chances.spawn_haste_area_on_sp_pickup_chance:next() then
+        self.area:addGameObject('HasteArea', self.x, self.y)
+        self.area:addGameObject('InfoText', self.x, self.y, {text = 'Haste Area!', color = faded_ammo_color})
+    end
+end
+
+function Player:onHPPickup()
+    if self.chances.spawn_haste_area_on_hp_pickup_chance:next() then
+        self.area:addGameObject('HasteArea', self.x, self.y)
+        self.area:addGameObject('InfoText', self.x, self.y, {text = 'Haste Area!', color = faded_ammo_color})
+    end
+end
+
+function Player:enterHasteArea()
+    self.inside_haste_area = true
+    self.pre_haste_aspd_multiplier = self.aspd_multiplier
+    self.aspd_multiplier = self.aspd_multiplier/2
+end
+
+function Player:exitHasteArea()
+    self.inside_haste_area = false
+    self.aspd_multiplier = self.pre_haste_aspd_multiplier
+    self.pre_haste_aspd_multiplier = nil
 end
