@@ -1,27 +1,3 @@
---[[
-The MIT License (MIT)
-
-Copyright (c) 2018 SSYGEN
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-]]--
-
 local path = ... .. '.' 
 local wf = {} 
 wf.Math = require(path .. 'mlib.mlib') 
@@ -73,16 +49,12 @@ function World:update(dt)
     self.box2d_world:update(dt)
 end
 
-function World:draw(alpha)
-    -- get the current color values to reapply
-    local r, g, b, a = love.graphics.getColor()
-    -- alpha value is optional
-    alpha = alpha or 255
+function World:draw()
     -- Colliders debug
-    love.graphics.setColor(222, 222, 222, alpha)
-    local bodies = self.box2d_world:getBodies()
+    love.graphics.setColor(222, 222, 222)
+    local bodies = self.box2d_world:getBodyList()
     for _, body in ipairs(bodies) do
-        local fixtures = body:getFixtures()
+        local fixtures = body:getFixtureList()
         for _, fixture in ipairs(fixtures) do
             if fixture:getShape():type() == 'PolygonShape' then
                 love.graphics.polygon('line', body:getWorldPoints(fixture:getShape():getPoints()))
@@ -99,26 +71,26 @@ function World:draw(alpha)
             end
         end
     end
-    love.graphics.setColor(255, 255, 255, alpha)
+    love.graphics.setColor(255, 255, 255)
 
     -- Joint debug
-    love.graphics.setColor(222, 128, 64, alpha)
-    local joints = self.box2d_world:getJoints()
+    love.graphics.setColor(222, 128, 64)
+    local joints = self.box2d_world:getJointList()
     for _, joint in ipairs(joints) do
         local x1, y1, x2, y2 = joint:getAnchors()
         if x1 and y1 then love.graphics.circle('line', x1, y1, 4) end
         if x2 and y2 then love.graphics.circle('line', x2, y2, 4) end
     end
-    love.graphics.setColor(255, 255, 255, alpha)
+    love.graphics.setColor(255, 255, 255)
 
     -- Query debug
-    love.graphics.setColor(64, 64, 222, alpha)
+    love.graphics.setColor(64, 64, 222)
     for _, query_draw in ipairs(self.query_debug_draw) do
         query_draw.frames = query_draw.frames - 1
         if query_draw.type == 'circle' then
             love.graphics.circle('line', query_draw.x, query_draw.y, query_draw.r)
         elseif query_draw.type == 'rectangle' then
-            love.graphics.rectangle('line', query_draw.x, query_draw.y, query_draw.w, query_draw.h)
+            love.graphics.rectangle('line', query_draw.x, query_draw.x, query_draw.w, query_draw.h)
         elseif query_draw.type == 'line' then
             love.graphics.line(query_draw.x1, query_draw.y1, query_draw.x2, query_draw.y2)
         elseif query_draw.type == 'polygon' then
@@ -131,7 +103,7 @@ function World:draw(alpha)
             table.remove(self.query_debug_draw, i)
         end
     end
-    love.graphics.setColor(r, g, b, a)
+    love.graphics.setColor(255, 255, 255)
 end
 
 function World:setQueryDebugDrawing(value)
@@ -569,7 +541,7 @@ function World:queryCircleArea(x, y, radius, collision_class_names)
     local outs = {}
     for _, collider in ipairs(colliders) do
         if self:collisionClassInCollisionClassesList(collider.collision_class, collision_class_names) then
-            for _, fixture in ipairs(collider.body:getFixtures()) do
+            for _, fixture in ipairs(collider.body:getFixtureList()) do
                 if self.wf.Math.polygon.getCircleIntersection(x, y, radius, {collider.body:getWorldPoints(fixture:getShape():getPoints())}) then
                     table.insert(outs, collider)
                     break
@@ -588,7 +560,7 @@ function World:queryRectangleArea(x, y, w, h, collision_class_names)
     local outs = {}
     for _, collider in ipairs(colliders) do
         if self:collisionClassInCollisionClassesList(collider.collision_class, collision_class_names) then
-            for _, fixture in ipairs(collider.body:getFixtures()) do
+            for _, fixture in ipairs(collider.body:getFixtureList()) do
                 if self.wf.Math.polygon.isPolygonInside({x, y, x+w, y, x+w, y+h, x, y+h}, {collider.body:getWorldPoints(fixture:getShape():getPoints())}) then
                     table.insert(outs, collider)
                     break
@@ -613,7 +585,7 @@ function World:queryPolygonArea(vertices, collision_class_names)
     local outs = {}
     for _, collider in ipairs(colliders) do
         if self:collisionClassInCollisionClassesList(collider.collision_class, collision_class_names) then
-            for _, fixture in ipairs(collider.body:getFixtures()) do
+            for _, fixture in ipairs(collider.body:getFixtureList()) do
                 if self.wf.Math.polygon.isPolygonInside(vertices, {collider.body:getWorldPoints(fixture:getShape():getPoints())}) then
                     table.insert(outs, collider)
                     break
@@ -649,7 +621,7 @@ end
 function World:addJoint(joint_type, ...)
     local args = {...}
     if args[1].body then args[1] = args[1].body end
-    if type(args[2]) == "table" and args[2].body then args[2] = args[2].body end
+    if args[2].body then args[2] = args[2].body end
     local joint = love.physics['new' .. joint_type](unpack(args))
     return joint
 end
@@ -661,7 +633,7 @@ end
 function World:destroy()
     local bodies = self.box2d_world:getBodies()
     for _, body in ipairs(bodies) do
-        local collider = body:getFixtures()[1]:getUserData()
+        local collider = body:getFixtureList()[1]:getUserData()
         collider:destroy()
     end
     local joints = self.box2d_world:getJoints()
@@ -808,7 +780,7 @@ end
 
 function Collider:enter(other_collision_class_name)
     local events = self.collision_events[other_collision_class_name]
-    if events and #events >= 1  then
+    if #events >= 1  then
         for _, e in ipairs(events) do
             if e.collision_type == 'enter' then
                 if not self.collision_stay[other_collision_class_name] then self.collision_stay[other_collision_class_name] = {} end
@@ -826,7 +798,7 @@ end
 
 function Collider:exit(other_collision_class_name)
     local events = self.collision_events[other_collision_class_name]
-    if events and #events >= 1  then
+    if #events >= 1  then
         for _, e in ipairs(events) do
             if e.collision_type == 'exit' then
                 if self.collision_stay[other_collision_class_name] then
@@ -926,4 +898,3 @@ wf.World = World
 wf.Collider = Collider
 
 return wf
-

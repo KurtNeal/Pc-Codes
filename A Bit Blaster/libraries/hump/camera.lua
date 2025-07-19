@@ -185,7 +185,6 @@ end
 
 -- camera coordinates to world coordinates
 function camera:getWorldCoords(x,y, sx,sy,ox,oy,w,h)
-    sx, sy = sx or 1, sy or 1
 	ox, oy = ox or 0, oy or 0
 	w,h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
 
