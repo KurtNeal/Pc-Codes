@@ -6,10 +6,12 @@ ammo_color = {0.482, 0.784, 0.643}
 boost_color = {0.298, 0.765, 0.851}
 skill_point_color = {1, 0.776, 0.365}
 rock_color = {0.961, 0.306, 0.106, 1}
+flame_color = {0.988, 0.545, 0.0706, 1}
 
 -- Faded colors
 faded_hp_color = {1, 0, 0, 0.8}
 faded_ammo_color = {0.482, 0.784, 0.643, 0.8}
+faded_boost_color = {0.298, 0.765, 0.851, 0.8}
 faded_skill_point_color = {1, 0.776, 0.365, 0.8}
 
 
@@ -33,7 +35,21 @@ attacks = {
     ['Spread'] = {cooldown = 0.16, ammo = 1, abbreviation = 'RS', color = default_color},
     ['Back'] = {cooldown = 0.32, ammo = 2, abbreviation = 'Ba', color = skill_point_color},
     ['Side'] = {cooldown = 0.32, ammo = 2, abbreviation = 'Si', color = boost_color},
-    ['Homing'] = {cooldown = 0.56, ammo = 4, abbreviation = 'H', color = skill_point_color}
+    ['Homing'] = {cooldown = 0.56, ammo = 4, abbreviation = 'H', color = skill_point_color},
+    ['Blast'] = {cooldown = 0.64, ammo = 6, abbreviation = 'W', color = default_color},
+    ['Spin'] = {cooldown = 0.32, ammo = 2, abbreviation = 'Sp', color = hp_color},
+    ['Flame'] = {cooldown = 0.048, ammo = 0.4, abbreviation = 'F', color = flame_color},
+    ['Bounce'] = {cooldown = 0.32, ammo = 4, abbreviation = 'Bn', color = default_color},
+    ['2Split'] = {cooldown = 0.32, ammo = 3, abbreviation = '2S', color = ammo_color}
+}
+
+change_attack = {
+    "Double", "Triple", 
+    "Rapid", "Spread", 
+    "Back", "Side", 
+    "Homing", "Blast", 
+    "Spin", "Flame",
+    "Bounce", "2Split"
 }
 
 enemies = {'Rock', 'Shooter'}

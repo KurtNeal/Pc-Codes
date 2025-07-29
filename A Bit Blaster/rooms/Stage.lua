@@ -10,10 +10,9 @@ function Stage:new()
     self.area.world:addCollisionClass('EnemyProjectile', {ignores = {'EnemyProjectile', 'Projectile', 'Enemy'}})
 
     self.font = fonts.m5x7_16
-    self.director = Director(self)
-
     self.main_canvas = love.graphics.newCanvas(gw, gh)
     self.player = self.area:addGameObject('Player', gw / 2, gh / 2)
+    self.director = Director(self)
 
     self.score = 0
 

@@ -42,7 +42,10 @@ function Director:new(stage)
         )
     end
 
-    self.resource_spawn_chances = chanceList({'Boost', 28}, {'HP', 14}, {'SkillPoint', 58})
+    self.resource_spawn_chances = chanceList(
+        {'Boost', 28*self.stage.player.boost_spawn_chance_multiplier}, 
+        {'HP', 14*self.stage.player.hp_spawn_chance_multiplier}, 
+        {'SkillPoint', 58*self.stage.player.sp_spawn_chance_multiplier})
 
     self:setEnemySpawnsForThisRound()
 end
@@ -52,21 +55,21 @@ function Director:update(dt)
 
     -- Difficulty
     self.round_timer = self.round_timer + dt
-    if self.round_timer > self.round_duration then
+    if self.round_timer > self.round_duration/self.stage.player.enemy_spawn_rate_multiplier then
         self.round_timer = 0
         self.difficulty = self.difficulty + 1
         self:setEnemySpawnsForThisRound()
     end
 
     self.resource_timer = self.resource_timer + dt
-    if self.resource_timer > self.resource_duration then
+    if self.resource_timer > self.resource_duration/self.stage.player.resource_spawn_rate_multiplier then
         self.resource_timer = 0
         self.stage.area:addGameObject(self.resource_spawn_chances:next())
     end
 
     self.attack_timer = self.attack_timer + dt
-    if self.attack_timer > self.attack_duration then
-        self.attack_timer = 0 
+    if self.attack_timer > self.attack_duration/self.stage.player.attack_spawn_rate_multiplier then
+        self.attack_timer = 0
         self.stage.area:addGameObject('Attack')
     end
 end

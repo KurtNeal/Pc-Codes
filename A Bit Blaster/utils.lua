@@ -13,11 +13,17 @@ function random(min, max)
     return (min > max and (love.math.random()*(min - max) + max)) or (love.math.random()*(max - min) + min)
 end
 
--- Picks a random element from a table. If -1 is picked then the object will be spawned 
--- to the left of the screen, and if 1 is picked then it will be spawned to the right.
-
+-- Picks a random element from a table.
 function table.random(t)
     return t[love.math.random(1, #t)]
+end
+
+--  joins two tables together with all their values into a new one and then returns it.
+function table.merge(t1, t2)
+    local new_table = {}
+    for k, v in pairs(t2) do new_table[k] = v end
+    for k, v in pairs(t1) do new_table[k] = v end
+    return new_table
 end
 
 -- rotates the graphics context around a point (x, y) by angle r.
