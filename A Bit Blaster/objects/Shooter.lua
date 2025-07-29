@@ -58,7 +58,12 @@ function Shooter:hit(damage)
         self.dead = true
         current_room.score = current_room.score + 150
         self.area:addGameObject('EnemyDeathEffect', self.x, self.y, {color = Shooter_color, w = 3*self.w})
-        self.area:addGameObject('Ammo', self.x, self.y)
+        if current_room.player.double_ammo_drop then
+            self.area:addGameObject('Ammo', self.x, self.y)
+            self.area:addGameObject('Ammo', self.x, self.y)
+        else
+            self.area:addGameObject('Ammo', self.x, self.y)
+        end
     else
         self.hit_flash = true
         self.timer:after('hit_flash', 0.2, function() self.hit_flash = false end)
