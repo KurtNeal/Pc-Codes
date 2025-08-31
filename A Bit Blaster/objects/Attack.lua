@@ -17,7 +17,7 @@ function Attack:new(area, x, y, opts)
     self.collider:applyAngularImpulse(random(-24, 24))
 
     self.font = fonts.m5x7_16
-    self.attack = table.random({'Double', 'Triple', 'Rapid', 'Spread', 'Back', 'Side', 'Homing', 'Blast', 'Spin', 'Flame', 'Bounce', '2Split', '4Split'})
+    self.attack = opts.attack or table.random({'Double', 'Triple', 'Rapid', 'Spread', 'Back', 'Side', 'Homing', 'Blast', 'Spin', 'Flame', 'Bounce', '2Split', '4Split', 'Lightning', 'Explode'})
 end
 
 function Attack:update(dt)

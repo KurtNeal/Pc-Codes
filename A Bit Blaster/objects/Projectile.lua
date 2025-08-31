@@ -5,11 +5,13 @@ function Projectile:new(area, x, y, opts)
 
     self.s = opts.s or 2.5*current_room.player.projectile_size_multiplier
     self.v = opts.v or 200*current_room.player.pspd_multiplier.value
-    self.rv = table.random({random(-2*math.pi, -math.pi), random(math.pi, 2*math.pi)})
     self.color = attacks[self.attack].color
 
     self.change_frequency_multiplier = current_room.player.angle_change_frequency_multiplier
     self.PDM = current_room.player.projectile_duration_multiplier
+    self.more_split_projectiles = current_room.player.split_projectiles_split
+    self.mine = current_room.player.mine_projectile
+    self.projectile_explosions = current_room.player.projectile_explosions
 
     self.collider = self.area.world:newCircleCollider(self.x, self.y, self.s)
     self.collider:setObject(self)
@@ -18,7 +20,7 @@ function Projectile:new(area, x, y, opts)
 
     self.damage = 100
 
-    if self.attack == 'Homing' or self.attack == 'Explode' then
+    if self.attack == 'Homing' or self.attack == 'Explode' or self.attack == '2Split' or self.attack == '4Split' then
         self.timer:every(0.02, function()
             local r = Vector(self.collider:getLinearVelocity()):angle()
             self.area:addGameObject('TrailParticle', self.x - 1.0*self.s*math.cos(r), self.y - 1.0*self.s*math.sin(r), 
@@ -33,7 +35,16 @@ function Projectile:new(area, x, y, opts)
     end
 
     if self.attack == 'Spin' then
-        self.rv = table.random({random(-2*math.pi, -math.pi), random(math.pi, 2*math.pi)})
+        local spin_only_left = current_room.player.fixed_spin_attack_direction_left
+        local spin_only_right = current_room.player.fixed_spin_attack_direction_right
+        if spin_only_left then
+            self.rv = table.random({random(-2*math.pi, -math.pi)})
+        elseif spin_only_right then
+            self.rv = table.random({random(math.pi, 2*math.pi)})
+        else
+            self.rv = table.random({random(-2*math.pi, -math.pi), random(math.pi, 2*math.pi)})
+        end
+        
         self.timer:after(random(2.4*self.PDM, 3.2*self.PDM), function() self:die() end)
         self.timer:every(0.05, function() self.area:addGameObject('ProjectileTrail', 
             self.x, self.y, {r = Vector(self.collider:getLinearVelocity()):angle(), color = self.color, s = self.s})
@@ -50,11 +61,11 @@ function Projectile:new(area, x, y, opts)
         end)
     end
 
-    if self.attack == '2Split' or self.attack == '4Split' then
-        self.timer:every(0.02, function()
-            local r = Vector(self.collider:getLinearVelocity()):angle()
-            self.area:addGameObject('TrailParticle', self.x - 1.0*self.s*math.cos(r), self.y - 1.0*self.s*math.sin(r), 
-            {parent = self, r = random(1, 3), d = random(0.1, 0.15), color = self.color}) 
+    if self.mine then
+        self.rv = table.random({random(-12*math.pi, -10*math.pi), random(10*math.pi, 12*math.pi)})
+        self.timer:after(random(8, 12), function()
+            self:die()
+            self.area:addGameObject('ExplodeEffect', self.x, self.y, {parent = self, color = default_color})
         end)
     end
 
@@ -81,7 +92,7 @@ function Projectile:new(area, x, y, opts)
     if current_room.player.wavy_projectiles then
         local direction = table.random({-1, 1})
         self.timer:tween(0.25, self, {r = self.r + direction*math.pi / 8}, 'linear', function()
-            self.timer:tween(0.25, self, {r = self.r - direction*math.pi / 4}, linear)
+            self.timer:tween(0.25, self, {r = self.r - direction*math.pi / 4}, 'linear')
         end)
         self.timer:every(0.75, function()
             self.timer:tween(0.25, self, {r = self.r + direction*math.pi / 4}, 'linear', function()
@@ -141,6 +152,30 @@ function Projectile:update(dt)
             self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(5*math.pi/4), self.y + 1.5*d*math.sin(5*math.pi/4), {r = 5*math.pi/4, attack = 'Double'})
             self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(7*math.pi/4), self.y + 1.5*d*math.sin(7*math.pi/4), {r = 7*math.pi/4, attack = 'Double'})
         end
+        if self.more_split_projectiles then
+            self.timer:after(0.8, function() self.more_split_projectiles = false end)
+            local d = 1.2*12
+            if self.x < 0 then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(7*math.pi/4), self.y + 1.5*d*math.sin(7*math.pi/4), {r = 7*math.pi/4, attack = '2Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(math.pi/4), self.y + 1.5*d*math.sin(math.pi/4), {r = math.pi/4, attack = '2Split'})
+            end
+            if self.x > gw then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(3*math.pi/4), self.y + 1.5*d*math.sin(3*math.pi/4), {r = 3*math.pi/4, attack = '2Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(5*math.pi/4), self.y + 1.5*d*math.sin(5*math.pi/4), {r = 5*math.pi/4, attack = '2Split'})
+            end
+            if self.y < 0 then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(math.pi/4), self.y + 1.5*d*math.sin(math.pi/4), {r = math.pi/4, attack = '2Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(3*math.pi/4), self.y + 1.5*d*math.sin(3*math.pi/4), {r = 3*math.pi/4, attack = '2Split'})
+            end
+            if self.y > gh then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(5*math.pi/4), self.y + 1.5*d*math.sin(5*math.pi/4), {r = 5*math.pi/4, attack = '2Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(7*math.pi/4), self.y + 1.5*d*math.sin(7*math.pi/4), {r = 7*math.pi/4, attack = '2Split'})
+            end
+        end
     end
 
     if self.attack == '4Split' then
@@ -165,8 +200,45 @@ function Projectile:update(dt)
             self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(5*math.pi/4), self.y + 1.5*d*math.sin(5*math.pi/4), {r = 5*math.pi/4, attack = 'Triple'})
             self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(7*math.pi/4), self.y + 1.5*d*math.sin(7*math.pi/4), {r = 7*math.pi/4, attack = 'Triple'})
         end
+        if self.more_split_projectiles then
+            self.timer:after(1, function() self.more_split_projectiles = false end)
+            local d = 1.2*12
+            if self.x < 0 then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(7*math.pi/4), self.y + 1.5*d*math.sin(7*math.pi/4), {r = 7*math.pi/4, attack = '4Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(math.pi/4), self.y + 1.5*d*math.sin(math.pi/4), {r = math.pi/4, attack = '4Split'})
+            end
+            if self.x > gw then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(3*math.pi/4), self.y + 1.5*d*math.sin(3*math.pi/4), {r = 3*math.pi/4, attack = '4Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(5*math.pi/4), self.y + 1.5*d*math.sin(5*math.pi/4), {r = 5*math.pi/4, attack = '4Split'})
+            end
+            if self.y < 0 then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(math.pi/4), self.y + 1.5*d*math.sin(math.pi/4), {r = math.pi/4, attack = '4Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(3*math.pi/4), self.y + 1.5*d*math.sin(3*math.pi/4), {r = 3*math.pi/4, attack = '4Split'})
+            end
+            if self.y > gh then
+                self:die()
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(5*math.pi/4), self.y + 1.5*d*math.sin(5*math.pi/4), {r = 5*math.pi/4, attack = '4Split'})
+                self.area:addGameObject('Projectile', self.x + 1.5*d*math.cos(7*math.pi/4), self.y + 1.5*d*math.sin(7*math.pi/4), {r = 7*math.pi/4, attack = '4Split'})
+            end
+        end
     end
 
+    if self.attack == 'Explode' then
+        if self.x < 0 or self.x > gw then
+            self.area:addGameObject('ExplodeEffect', self.x, self.y, {parent = self, color = hp_color})
+            for i = 1, love.math.random(8, 12) do self.area:addGameObject('ExplodeParticle', self.x, self.y, {s = 15, v = 200, color = hp_color}) end
+            camera:shake(2, 50, 0.4)
+        end
+        if self.y < 0 or self.y > gh then
+            self.area:addGameObject('ExplodeEffect', self.x, self.y, {parent = self, color = hp_color})
+            for i = 1, love.math.random(8, 12) do self.area:addGameObject('ExplodeParticle', self.x, self.y, {s = 15, v = 200, color = hp_color}) end
+            camera:shake(2, 50, 0.4)
+        end
+    end
+    
     if self.bounce and self.bounce > 1 then
         if self.x < 0 or self.x > gw then
             self.r = math.pi - self.r
@@ -177,29 +249,12 @@ function Projectile:update(dt)
             self.bounce = self.bounce - 1
         end
     else
-        if self.x < 0 or self.y < 0 then 
-            self:die()
-            if self.attack == 'Explode' then
-                self.area:addGameObject('ExplodeEffect', self.x, self.y, {parent = self, color = hp_color})
-                for i = 1, love.math.random(8, 12) do self.area:addGameObject('ExplodeParticle', self.x, self.y, {s = 15, v = 200, color = hp_color}) end
-                camera:shake(2, 50, 0.4)
-            end
-        end
-        if self.x > gw or self.y > gh then 
-            self:die()
-            if self.attack == 'Explode' then
-                self.area:addGameObject('ExplodeEffect', self.x, self.y, {parent = self, color = hp_color})
-                for i = 1, love.math.random(8, 12) do self.area:addGameObject('ExplodeParticle', self.x, self.y, {s = 15, v = 200, color = hp_color}) end
-                camera:shake(2, 50, 0.4)
-            end
-        end
+        if self.x < 0 or self.y < 0 then self:die() end
+        if self.x > gw or self.y > gh then self:die() end
     end
 
     -- Spin
-    if self.attack == 'Spin' then
-        self.r = self.r + self.rv*dt
-        self.timer:after(random(2.4*self.PDM, 3.2*self.PDM), function() self:die() end)
-    end
+    if self.attack == 'Spin' or self.mine then self.r = self.r + self.rv*dt end
 
     -- Homing
     if self.attack == 'Homing' then
