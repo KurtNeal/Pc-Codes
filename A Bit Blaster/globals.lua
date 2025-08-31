@@ -53,10 +53,11 @@ change_attack = {
     "Homing", "Blast", 
     "Spin", "Flame",
     "Bounce", "2Split",
-    "4Split"
+    "4Split", "Lightning",
+    "Explode"
 }
 
-enemies = {'Rock', 'Shooter'}
+enemies = {'Rock', 'Shooter', 'BigRock'}
 
 skill_points = 0
 max_sp = 9999

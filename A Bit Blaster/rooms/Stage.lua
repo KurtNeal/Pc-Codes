@@ -20,9 +20,8 @@ function Stage:new()
     input:bind('o', function() self.area:addGameObject('Boost', 0, 0) end)
     input:bind('i', function() self.area:addGameObject('HP', 0, 0) end)
     input:bind('l', function() self.area:addGameObject('SkillPoint', 0, 0) end)
-    input:bind('k', function() self.area:addGameObject('Attack', 0, 0) end)
-    input:bind('0', function() self.area:addGameObject('Rock', 0, 0) end)
-    input:bind('9', function() self.area:addGameObject('Shooter', 0, 0) end)
+    input:bind('0', function() self.area:addGameObject('BigRock', 0, 0) end)
+    input:bind('9', function() self.area:addGameObject('Waver', 0, 0) end)
 end
 
 function Stage:update(dt)
@@ -54,15 +53,27 @@ function Stage:draw()
         love.graphics.setColor(1, 1, 1)
 
         -- HP
-        local r, g, b = unpack(hp_color)
-        local hp, max_hp = self.player.hp, self.player.max_hp
-        love.graphics.setColor(r, g, b)
-        love.graphics.rectangle('fill', gw / 2 - 52, gh - 16, 48*(hp/max_hp), 4)
-        love.graphics.setColor(r - 0.125, g - 0.125, b - 0.125)
-        love.graphics.rectangle('line', gw / 2 - 52, gh - 16, 48, 4)
-        love.graphics.print('HP', gw / 2 - 52 + 24, gh - 24, 0, 1, 1, math.floor(self.font:getWidth('HP') / 2), math.floor(self.font:getHeight() / 2))
-        love.graphics.print(hp .. '/' .. max_hp, gw / 2 - 52 + 24, gh - 6, 0, 1, 1, math.floor(self.font:getWidth(hp .. '/' .. max_hp) / 2), math.floor(self.font:getHeight() / 2))
-        love.graphics.setColor(1, 1, 1, 1)
+        if self.player.energy_shield then
+            local r, g, b = unpack(default_color)
+            local hp, max_hp = self.player.hp, self.player.max_hp
+            love.graphics.setColor(r, g, b)
+            love.graphics.rectangle('fill', gw / 2 - 52, gh - 16, 48*(hp/max_hp), 4)
+            love.graphics.setColor(r - 0.125, g - 0.125, b - 0.125)
+            love.graphics.rectangle('line', gw / 2 - 52, gh - 16, 48, 4)
+            love.graphics.print('ES', gw / 2 - 52 + 24, gh - 24, 0, 1, 1, math.floor(self.font:getWidth('ES') / 2), math.floor(self.font:getHeight() / 2))
+            love.graphics.print(hp .. '/' .. max_hp, gw / 2 - 52 + 24, gh - 6, 0, 1, 1, math.floor(self.font:getWidth(hp .. '/' .. max_hp) / 2), math.floor(self.font:getHeight() / 2))
+            love.graphics.setColor(1, 1, 1, 1)
+        else
+            local r, g, b = unpack(hp_color)
+            local hp, max_hp = self.player.hp, self.player.max_hp
+            love.graphics.setColor(r, g, b)
+            love.graphics.rectangle('fill', gw / 2 - 52, gh - 16, 48*(hp/max_hp), 4)
+            love.graphics.setColor(r - 0.125, g - 0.125, b - 0.125)
+            love.graphics.rectangle('line', gw / 2 - 52, gh - 16, 48, 4)
+            love.graphics.print('HP', gw / 2 - 52 + 24, gh - 24, 0, 1, 1, math.floor(self.font:getWidth('HP') / 2), math.floor(self.font:getHeight() / 2))
+            love.graphics.print(hp .. '/' .. max_hp, gw / 2 - 52 + 24, gh - 6, 0, 1, 1, math.floor(self.font:getWidth(hp .. '/' .. max_hp) / 2), math.floor(self.font:getHeight() / 2))
+            love.graphics.setColor(1, 1, 1, 1)
+        end
 
         -- Ammo
         local r, g, b = unpack(ammo_color)
